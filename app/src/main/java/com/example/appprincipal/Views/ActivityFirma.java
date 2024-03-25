@@ -1,5 +1,7 @@
 package com.example.appprincipal.Views;
 
+import static com.example.appprincipal.Views.ActivityCreateFoto.REQUEST_IMAGE;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,6 +12,7 @@ import androidx.core.content.FileProvider;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -20,7 +23,6 @@ import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -29,11 +31,9 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-
-
-import com.example.appprincipal.R;
 import com.example.appprincipal.Controller.RestApiMethods;
-import com.example.appprincipal.Models.Fotografia;
+import com.example.appprincipal.Models.Firma;
+import com.example.appprincipal.R;
 
 import org.json.JSONObject;
 
@@ -43,34 +43,32 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ActivityCreateFoto extends AppCompatActivity {
+public class ActivityFirma extends AppCompatActivity {
 
-    static final int REQUEST_IMAGE = 101;
-    static final int ACCESS_CAMERA =  201;
-
-    ImageView foto;
+    static final int ACCESS_CAMERA = 201;
+    static final int DRAW_SIGNATURE = 301;
+    Signature firma;
     String Path;
-    Button btnfoto, btnguardar,btnlista,btnregresar;
+    Button btnfirma,btnguardar,btnlista,btnregresar;
 
     EditText description;
-    String currentPhotoPath;
-
-    private RequestQueue requestQueue;
+    Bitmap signatureBitmap;
+    private String currentPhotoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_create_foto);
+        setContentView(R.layout.activity_firma);
 
-        foto = (ImageView) findViewById(R.id.image_view);
+        //firma = (Signature) findViewById(R.id.firma);
         description = (EditText) findViewById(R.id.editTextdes);
-        btnfoto = (Button) findViewById(R.id.btnfirma);
+        btnfirma = (Button) findViewById(R.id.btnfirma);
         btnguardar = (Button) findViewById(R.id.btnguardar);
         btnlista = (Button) findViewById(R.id.btnlist);
         btnregresar = (Button) findViewById(R.id.btnregresar);
 
 
-        btnfoto.setOnClickListener(new View.OnClickListener() {
+        btnfirma.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 permisos();
@@ -80,9 +78,10 @@ public class ActivityCreateFoto extends AppCompatActivity {
         btnguardar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SendData();
+                saveData();
             }
         });
+
         btnlista.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -93,56 +92,77 @@ public class ActivityCreateFoto extends AppCompatActivity {
 
     }
 
-    private void SendData()
-    {
-        requestQueue = Volley.newRequestQueue(this);
-        Fotografia fotografia = new Fotografia();
+    private void saveData() {
+        if (signatureBitmap != null) {
+            String descriptionText = description.getText().toString().trim();
+            if (!descriptionText.isEmpty()) {
+                // Convertir la firma a Base64 y enviar los datos
+                String signatureBase64 = convertBitmapToBase64(signatureBitmap);
 
-        fotografia.setDescription(description.getText().toString());
-        fotografia.setImagen(ConvertImageBase64(currentPhotoPath));
+                RequestQueue requestQueue = Volley.newRequestQueue(this);
 
-        JSONObject jsonObject = new JSONObject();
+                Firma firma = new Firma();
+                firma.setDescription(descriptionText);
+                firma.setImagen(signatureBase64);
+                // Aquí puedes enviar los datos a través de tu API
 
-        try
-        {
-            jsonObject.put("imagen",fotografia.getImagen());
-            jsonObject.put("descripcion",fotografia.getDescription());
+                JSONObject jsonObject = new JSONObject();
 
-            JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, RestApiMethods.EndpointPostPerson,
-                    jsonObject, new Response.Listener<JSONObject>() {
-                @Override
-                public void onResponse(JSONObject response)
+                try
                 {
-                    try
-                    {
-                        String mensaje = response.getString("message");
-                        Toast.makeText(getApplicationContext(), mensaje, Toast.LENGTH_LONG).show();
-                    }
-                    catch (Exception ex)
-                    {
-                        ex.printStackTrace();
-                    }
+                    jsonObject.put("imagen",firma.getImagen());
+                    jsonObject.put("descripcion",firma.getDescription());
+
+                    JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, RestApiMethods.EndpointPostPersonfirma,
+                            jsonObject, new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject response)
+                        {
+                            try
+                            {
+                                String mensaje = response.getString("message");
+                                Toast.makeText(getApplicationContext(), mensaje, Toast.LENGTH_LONG).show();
+                            }
+                            catch (Exception ex)
+                            {
+                                ex.printStackTrace();
+                            }
+
+                        }
+                    }, new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+
+                            String errorMessage = error.getMessage() != null ? error.getMessage() : "Error desconocido";
+                            Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
+
+                        }
+                    });
+
+
+                    requestQueue.add(request);
 
                 }
-            }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-
-                    String errorMessage = error.getMessage() != null ? error.getMessage() : "Error desconocido";
-                    Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
-
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
                 }
-            });
 
-
-            requestQueue.add(request);
-
+                // RestApiMethods.sendData(fotografia);
+                Toast.makeText(this, "Datos guardados correctamente", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Por favor, ingrese una descripción", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "Por favor, ingrese una firma", Toast.LENGTH_SHORT).show();
         }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-        }
+    }
 
+    private String convertBitmapToBase64(Bitmap bitmap) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
     private String ConvertImageBase64(String path)
@@ -150,16 +170,16 @@ public class ActivityCreateFoto extends AppCompatActivity {
         Bitmap bitmap = BitmapFactory.decodeFile(path);
         ByteArrayOutputStream byteArrayOutputStream = null;
 
-            byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, byteArrayOutputStream);
-            byte[] imageArray = byteArrayOutputStream.toByteArray();
-            return Base64.encodeToString(imageArray, Base64.DEFAULT);
+        byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, byteArrayOutputStream);
+        byte[] imageArray = byteArrayOutputStream.toByteArray();
+        return Base64.encodeToString(imageArray, Base64.DEFAULT);
 
     }
 
     private void permisos() {
-        if (ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, ACCESS_CAMERA);
+        if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, ACCESS_CAMERA);
         } else {
             dispatchTakePictureIntent();
         }
@@ -226,19 +246,14 @@ public class ActivityCreateFoto extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == REQUEST_IMAGE && resultCode == RESULT_OK && data != null) {
+        if (requestCode == DRAW_SIGNATURE && resultCode == RESULT_OK && data != null) {
             try {
-                File photoFile = new File(currentPhotoPath);
-                if (photoFile.exists()) {
-                    foto.setImageURI(Uri.fromFile(photoFile));
-                } else {
-                    Toast.makeText(this, "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
-                }
-            } catch (Exception ex) {
+                signatureBitmap = (Bitmap) data.getExtras().get("data");
+            }catch (Exception ex) {
                 ex.printStackTrace();
                 Toast.makeText(this, "Error al cargar la imagen", Toast.LENGTH_SHORT).show();
             }
         }
     }
+
 }

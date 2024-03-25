@@ -40,6 +40,9 @@
         android:theme="@style/Theme.Appprincipal"
         tools:targetApi="31">
         <activity
+            android:name=".Views.ActivityFirma"
+            android:exported="false" />
+        <activity
             android:name=".Views.ActivityReadFoto"
             android:exported="false" />
         <activity
