@@ -1,7 +1,8 @@
-package com.example.appprincipal.models;
+package com.example.appprincipal.Models;
 
 public class Fotografia {
 
+    private int id;
     private String imagen;
     private String description;
 
@@ -10,11 +11,19 @@ public class Fotografia {
 
     }
 
-    public Fotografia(String imagen, String description) {
+    public Fotografia(int id, String imagen, String description) {
+        this.id = id;
         this.imagen = imagen;
         this.description = description;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
     public String getImagen() {
         return imagen;
     }
